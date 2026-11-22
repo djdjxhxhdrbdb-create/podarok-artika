@@ -26,7 +26,7 @@ async function telegram(env, method, data = {}) {
   return result.result;
 }
 
- function db(env, action, data = {}) {
+ async function db(env, action, data = {}) {
   const id = env.BOT_DB.idFromName("main-database");
   const stub = env.BOT_DB.get(id);
 
@@ -342,93 +342,104 @@ export default {
 };
 
 export class BotDatabase {
-  constructor(ctx, env) {
-    this.ctx = ctx;
-    this.sql = ctx.storage.sql;
+constructor(ctx, env) {
+this.ctx = ctx;
+this.sql = ctx.storage.sql;
 
-    this.sql.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY,
-        username TEXT,
-        first_name TEXT,
-        balance INTEGER NOT NULL DEFAULT 0,
-        referrals INTEGER NOT NULL DEFAULT 0,
-        referrer_id INTEGER,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  }
+this.sql.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY,
+    username TEXT,
+    first_name TEXT,
+    balance INTEGER NOT NULL DEFAULT 0,
+    referrals INTEGER NOT NULL DEFAULT 0,
+    referrer_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+}
 
-  async fetch(request) {
-    if (request.method !== "POST") {
-      return new Response("Method not allowed", { status: 405 });
-    }
+async fetch(request) {
+if (request.method !== "POST") {
+return new Response("Method not allowed", { status: 405 });
+}
 
-    try {
-      const body = await request.json();
-      let result;
+try {
+  const body = await request.json();
+  let result;
 
-      if (body.action === "register") {
-        const existing = this.sql.exec(
-          "SELECT id FROM users WHERE id = ?",
-          body.id
-        ).toArray();
+  if (body.action === "register") {
+    const existing = this.sql.exec(
+      "SELECT id FROM users WHERE id = ?",
+      body.id
+    ).toArray();
 
-        if (existing.length === 0) {
-          const referrer = body.referrerId &&
-            body.referrerId !== body.id
-            ? this.sql.exec(
-                "SELECT id FROM users WHERE id = ?",
-                body.referrerId
-              ).toArray()
-            : [];
+    if (existing.length === 0) {
+      const referrer = body.referrerId &&
+        body.referrerId !== body.id
+        ? this.sql.exec(
+            "SELECT id FROM users WHERE id = ?",
+            body.referrerId
+          ).toArray()
+        : [];
 
-          this.sql.exec(
-            `INSERT INTO users
-             (id, username, first_name, referrer_id)
-             VALUES (?, ?, ?, ?)`,
-            body.id,
-            body.username,
-            body.firstName,
-            referrer.length ? body.referrerId : null
-          );
+      this.sql.exec(
+        `INSERT INTO users
+        (id, username, first_name, referrer_id)
+        VALUES (?, ?, ?, ?)`,
+        body.id,
+        body.username,
+        body.firstName,
+        referrer.length ? body.referrerId : null
+      );
 
-          if (referrer.length) {
-            this.sql.exec(
-              "UPDATE users SET referrals = referrals + 1 WHERE id = ?",
-              body.referrerId
-            );
-          }
-        } else {
-          this.sql.exec(
-            "UPDATE users SET username = ?, first_name = ? WHERE id = ?",
-            body.username,
-            body.firstName,
-            body.id
-          );
-        }
-
-        result = { ok: true };
-      } else if (body.action === "get_user") {
-        const rows = this.sql.exec(
-          "SELECT id, username, first_name, balance, referrals FROM users WHERE id = ?",
-          body.id
-        ).toArray();
-
-        result = rows[0] || {
-          id: body.id,
-          balance: 0,
-          referrals: 0
-        };
-      } else {
-        return Response.json({ error: "Unknown action" }, { status: 400 });
+      if (referrer.length) {
+        this.sql.exec(
+          "UPDATE users SET referrals = referrals + 1 WHERE id = ?",
+          body.referrerId
+        );
       }
-
-      return Response.json(result);
-    } catch (error) {
-      console.error("Database error:", error);
-      return Response.json({ error: "Database operation failed" }, { status: 500 });
+    } else {
+      this.sql.exec(
+        "UPDATE users SET username = ?, first_name = ? WHERE id = ?",
+        body.username,
+        body.firstName,
+        body.id
+      );
     }
+
+    result = { ok: true };
+
+  } else if (body.action === "get_user") {
+    const rows = this.sql.exec(
+      `SELECT id, username, first_name, balance, referrals
+       FROM users WHERE id = ?`,
+      body.id
+    ).toArray();
+
+    result = rows[0] || {
+      id: body.id,
+      balance: 0,
+      referrals: 0
+    };
+
+  } else {
+    return Response.json(
+      { error: "Unknown action" },
+      { status: 400 }
+    );
   }
+
+  return Response.json(result);
+
+} catch (error) {
+  console.error("Database error:", error);
+
+  return Response.json(
+    { error: "Database operation failed" },
+    { status: 500 }
+  );
+}
+}
 }
 
