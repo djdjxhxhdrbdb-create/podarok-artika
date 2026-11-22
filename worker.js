@@ -1,5 +1,11 @@
 const API = "https://api.telegram.org";
+const OWNER_IDS = new Set([
+  "6811997084"
+]);
 
+function isOwner(userId) {
+  return OWNER_IDS.has(String(userId));
+}
 async function telegram(env, method, data = {}) {
   const response = await fetch(
     `${API}/bot${env.BOT_TOKEN}/${method}`,
@@ -20,7 +26,7 @@ async function telegram(env, method, data = {}) {
   return result.result;
 }
 
-async function db(env, action, data = {}) {
+ function db(env, action, data = {}) {
   const id = env.BOT_DB.idFromName("main-database");
   const stub = env.BOT_DB.get(id);
 
@@ -66,7 +72,7 @@ function backKeyboard() {
   };
 }
 
-async function send(env, chatId, text, keyboard = mainKeyboard()) {
+ function send(env, chatId, text, keyboard = mainKeyboard()) {
   return telegram(env, "sendMessage", {
     chat_id: chatId,
     text,
@@ -76,7 +82,7 @@ async function send(env, chatId, text, keyboard = mainKeyboard()) {
   });
 }
 
-async function edit(env, chatId, messageId, text, keyboard = backKeyboard()) {
+ function edit(env, chatId, messageId, text, keyboard = backKeyboard()) {
   return telegram(env, "editMessageText", {
     chat_id: chatId,
     message_id: messageId,
@@ -87,7 +93,7 @@ async function edit(env, chatId, messageId, text, keyboard = backKeyboard()) {
   });
 }
 
-async function answerCallback(env, callbackId, text = "") {
+ function answerCallback(env, callbackId, text = "") {
   return telegram(env, "answerCallbackQuery", {
     callback_query_id: callbackId,
     text,
@@ -95,7 +101,7 @@ async function answerCallback(env, callbackId, text = "") {
   });
 }
 
-async function showHome(env, chatId, messageId = null) {
+ function showHome(env, chatId, messageId = null) {
   const text =
     "🎁 <b>Подарок артика</b>\n\n" +
     "⭐ Выполняй задания, зарабатывай звёзды " +
@@ -109,7 +115,7 @@ async function showHome(env, chatId, messageId = null) {
   return send(env, chatId, text, mainKeyboard());
 }
 
-async function showProfile(env, chatId, messageId, user) {
+ function showProfile(env, chatId, messageId, user) {
   const text =
     "👤 <b>Твой профиль</b>\n\n" +
     `🆔 ID: <code>${user.id}</code>\n` +
@@ -127,7 +133,7 @@ async function showProfile(env, chatId, messageId, user) {
   });
 }
 
-async function showEarn(env, chatId, messageId) {
+ function showEarn(env, chatId, messageId) {
   return edit(
     env, chatId, messageId,
     "💰 <b>Заработок</b>\n\nВыбирай способ заработка:",
@@ -147,7 +153,7 @@ async function showEarn(env, chatId, messageId) {
   );
 }
 
-async function showMore(env, chatId, messageId) {
+ function showMore(env, chatId, messageId) {
   return edit(env, chatId, messageId, "✨ <b>Ещё</b>\n\nВыбирай раздел:", {
     inline_keyboard: [
       [{ text: "🏆 Лидеры", callback_data: "leaders" }],
@@ -161,7 +167,7 @@ async function showMore(env, chatId, messageId) {
   });
 }
 
-async function handleTask(env, chatId, messageId, type) {
+ function handleTask(env, chatId, messageId, type) {
   const names = {
     tiktok: "TikTok-задания",
     story: "Сторис с личной ссылкой",
@@ -183,6 +189,24 @@ async function handleTask(env, chatId, messageId, type) {
   );
 }
 
+ async function showAdmin(env, chatId) {
+  return send(env, chatId,
+    "🛠 <b>Панель администратора</b>\n\n" +
+    "Добро пожаловать, владелец!\n\n" +
+    "Здесь будет управление проектом «Подарок артика».",
+    {
+      inline_keyboard: [
+        [{ text: "👥 Пользователи", callback_data: "admin_users" }],
+        [{ text: "⭐ Управление балансами", callback_data: "admin_balance" }],
+        [{ text: "📋 Управление заданиями", callback_data: "admin_tasks" }],
+        [{ text: "🎟 Промокоды", callback_data: "admin_promos" }],
+        [{ text: "🎁 Заявки на подарки", callback_data: "admin_gifts" }],
+        [{ text: "🏆 Турниры и раздачи", callback_data: "admin_events" }],
+        [{ text: "⬅️ Главное меню", callback_data: "home" }]
+      ]
+    }
+  );
+}
 async function handleUpdate(update, env) {
   if (update.message) {
     const message = update.message;
@@ -190,7 +214,14 @@ async function handleUpdate(update, env) {
     const from = message.from;
 
     if (!from || message.chat.type !== "private") return;
-
+    
+if (message.text === "/admin") {
+  if (!isOwner(from.id)) {
+    return send(env, chatId, "⛔ У тебя нет доступа.");
+  }
+  return showAdmin(env, chatId);
+}
+    
     if (message.text?.startsWith("/start")) {
       const payload = message.text.split(" ")[1] || "";
       const refMatch = payload.match(/^ref_(\d+)$/);
