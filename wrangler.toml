@@ -1,1 +1,16 @@
+name = "podarok-artika"
+main = "worker.js"
+compatibility_date = "2026-11-22"
 
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "BOT_DB"
+class_name = "BotDatabase"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BotDatabase"]
+
+[observability]
+enabled = true
