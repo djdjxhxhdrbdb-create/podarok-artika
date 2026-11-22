@@ -161,7 +161,7 @@ function backKeyboard() {
         { text: "🎟 Промокод", callback_data: "promo" },
         { text: "📖 Правила", callback_data: "rules" }
       ],
-      [{ text: "🆘 Поддержка", url: "t.me/artikhelper" }],
+      [{ text: "🆘 Поддержка", url: "https://t.me/artikhelper" }],
       [{ text: "⬅️ Главное меню", callback_data: "home" }]
     ]
   });
