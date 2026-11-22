@@ -161,7 +161,7 @@ function backKeyboard() {
         { text: "🎟 Промокод", callback_data: "promo" },
         { text: "📖 Правила", callback_data: "rules" }
       ],
-      [{ text: "🆘 Поддержка", url: "https://t.me/ВСТАВЬ_НИК_ПОДДЕРЖКИ" }],
+      [{ text: "🆘 Поддержка", url: "скоро добавим" }],
       [{ text: "⬅️ Главное меню", callback_data: "home" }]
     ]
   });
