@@ -255,7 +255,51 @@ if (message.text === "/admin") {
 
     await answerCallback(env, query.id);
 
-    if (!chatId || !messageId) return;
+   if (!chatId || !messageId) return;
+
+// Защита административных разделов
+if (data.startsWith("admin_")) {
+  if (!isOwner(userId)) {
+    return send(env, chatId, "⛔️ У тебя нет доступа к админ-панели.");
+  }
+
+  if (data === "admin_home") {
+    return edit(
+      env, chatId, messageId,
+      "🛠 <b>Панель администратора</b>\n\nДобро пожаловать, владелец!",
+      {
+        inline_keyboard: [
+          [{ text: "👥 Пользователи", callback_data: "admin_users" }],
+          [{ text: "⭐ Управление балансами", callback_data: "admin_balance" }],
+          [{ text: "📋 Управление заданиями", callback_data: "admin_tasks" }],
+          [{ text: "🎟 Промокоды", callback_data: "admin_promos" }],
+          [{ text: "🎁 Заявки на подарки", callback_data: "admin_gifts" }],
+          [{ text: "🏆 Турниры и раздачи", callback_data: "admin_events" }],
+          [{ text: "⬅️ Главное меню", callback_data: "home" }]
+        ]
+      }
+    );
+  }
+
+  const adminSections = {
+    admin_users: "👥 <b>Пользователи</b>\n\nЗдесь будет список зарегистрированных пользователей.",
+    admin_balance: "⭐ <b>Управление балансами</b>\n\nЗдесь будет начисление и списание звёзд.",
+    admin_tasks: "📋 <b>Управление заданиями</b>\n\nЗдесь будет создание и проверка заданий.",
+    admin_promos: "🎟 <b>Промокоды</b>\n\nЗдесь будет создание и управление промокодами.",
+    admin_gifts: "🎁 <b>Заявки на подарки</b>\n\nЗдесь будет обработка заявок на вывод подарков.",
+    admin_events: "🏆 <b>Турниры и раздачи</b>\n\nЗдесь будет управление мероприятиями."
+  };
+
+  if (adminSections[data]) {
+    return edit(env, chatId, messageId, adminSections[data], {
+      inline_keyboard: [
+        [{ text: "⬅️ Назад в админ-панель", callback_data: "admin_home" }]
+      ]
+    });
+  }
+
+  return;
+}
 
     if (data === "home") return showHome(env, chatId, messageId);
     if (data === "earn") return showEarn(env, chatId, messageId);
